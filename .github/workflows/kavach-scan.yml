@@ -1,0 +1,64 @@
+name: Security test Suite for Containers (K8s & Containerization)
+
+on:
+  push:
+    branches:
+      - main
+# on:
+#   workflow_dispatch:
+
+jobs:
+  codeql:
+    name: CodeQL Analysis
+    runs-on: self-hosted
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'typescript']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          output: results.sarif
+          category: cap_an
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+          category: cap_an
+          
+      - name: Parse CodeQL Results
+        id: parse_results
+        run: |
+          # Use jq to parse the SARIF file and count the severity levels
+          CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error" and .properties.severity == "critical")] | length' results.sarif)
+          HIGH_COUNT=$(jq '[.runs[].results[] | select(.level == "error" and .properties.severity == "high")] | length' results.sarif)
+          WARNING_COUNT=$(jq '[.runs[].results[] | select(.level == "warning")] | length' results.sarif)
+
+          echo "critical_count=${CRITICAL_COUNT}" >> $GITHUB_ENV
+          echo "high_count=${HIGH_COUNT}" >> $GITHUB_ENV
+          echo "warning_count=${WARNING_COUNT}" >> $GITHUB_ENV
+
+      # - name: Upload coverage reports to Codecov
+      #   uses: codecov/codecov-action@v4.0.1
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
