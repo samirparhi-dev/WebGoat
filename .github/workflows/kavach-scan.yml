@@ -78,7 +78,7 @@ jobs:
           podman push ghcr.io/${{ github.repository_owner }}/trivy-webgoat:latest    
 
   TrivyKubernetesScan:  
-    name: CodeQL Analysis
+    name: K8s Trivy Scanner
     runs-on: self-hosted
 
     permissions:
@@ -86,7 +86,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - name: Parse CodeQL Results
+      - name: Check for K8s report Vuln
         run: |
           trivy k8s --report summary --format json --output /home/spx7-k8s-deploy/trivy-report.json
       - name: Fail if Critical Vulnerabilities Found
